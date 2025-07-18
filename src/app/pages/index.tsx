@@ -1,0 +1,13 @@
+export { default as Home } from './home/index';
+export { default as About } from './about/index';
+export { default as StayWithUs } from './stay-with-us/index';
+export { default as DineWithUs } from './dine-with-us/index';
+export { default as RoomView } from './room-view/index';
+export { default as Menu } from './menu/index';
+export { default as ContactUs } from './contact-us/index';
+export { default as BlogPage } from './blog/index';
+export { default as BlogView } from './blog-view/index';
+export { default as TableView } from './table-view/index';
+export { default as RoomBook } from './room-book/index';
+export { default as TableBook } from './table-book/index';
+export { default as UserProfile } from './profile/index'; 

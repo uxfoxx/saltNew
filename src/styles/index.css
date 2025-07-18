@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Raleway', sans-serif;
+  height: 100% !important;
+}
+
+#root {
+  height: 100% !important;
+}
+
+:root {
+  height: 100% !important;
+}
+
+.text-shadow {
+  text-shadow: 6px 6px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* scroll style changes */
+
+/* width */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: theme('colors.primaryColor');
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.primaryColorLight');
+}
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    width: 750px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    width: 970px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 1170px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    width: 1370px;
+  }
+}
+
+.card-price {
+  display: inline-block;
+  /* width: 100px; */
+  min-width: 100px;
+  height: 38px;
+  background-color: theme('colors.primaryColor');
+  -webkit-border-radius: 0px 4px 4px 0px;
+  -moz-border-radius: 0px 4px 4px 0px;
+  border-radius: 0px 4px 4px 0px;
+  border-left: 1px solid theme('colors.primaryColor');
+  position: relative;
+  line-height: 38px;
+  padding: 0 20px 0 30px;
+}
+
+/* Makes the triangle */
+.crossed-marquee-container {
+  position: relative;
+  height: 200px;
+  margin: 4rem 0;
+  /* overflow: hidden; */
+}
+
+/* Common diagonal strip styles */
+.marquee-strip {
+  position: absolute;
+  width: 160vw;
+  /* Extra-wide so it crosses screen fully at an angle */
+  left: 50%;
+  transform: translateX(-50%);
+  /* Perfect horizontal centering */
+  padding: 1.5rem 0;
+  background: theme('backgroundImage.bg-conic-gradient');
+  overflow: hidden;
+}
+
+/* TOP STRIP */
+.strip-top {
+  top: 50%;
+  transform: translate(-50%, -40%) rotate(-6deg);
+  /* rotate + shift up */
+  z-index: 2;
+}
+
+/* BOTTOM STRIP */
+.strip-bottom {
+  top: 50%;
+  transform: translate(-50%, -40%) rotate(6deg);
+  /* rotate + shift down */
+  z-index: 1;
+}
+
+/* Rotate text back to horizontal */
+.marquee-inner {
+  transform: rotate(6deg);
+}
+
+.strip-bottom .marquee-inner {
+  transform: rotate(-6deg);
+}
+
+/* Marquee animation styling */
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  font-size: clamp(2rem, 6vw, 150px);
+  will-change: transform;
+  padding-left: 5vw;
+}
+
+.dot {
+  margin: 0 2vw;
+}
+
+/* @keyframes wave {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-wave {
+  animation: wave 8s linear infinite;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-blink {
+  animation: blink 3s ease-in-out infinite;
+} */
+
+
+/* @keyframes wave {
+  0% {
+    transform: translateX(0%);
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translateX(-50%);
+    opacity: 0.2;
+  }
+}
+
+.animate-wave-blink {
+  animation: wave 30s linear infinite;
+} */
+/* @keyframes wave-move {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-wave-move {
+  animation: wave-move 30s linear infinite;
+}
+
+.animate-blink {
+  animation: blink 4s ease-in-out infinite; 
+} */
+
+
+@keyframes waveAndBlink {
+  0% {
+    transform: translateX(0%);
+    opacity: 0.1;
+  }
+
+  25% {
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateX(-25%);
+    opacity: 0.1;
+  }
+
+  75% {
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: translateX(-50%);
+    opacity: 0.1;
+  }
+}
+
+.animate-wave-blink {
+  animation: waveAndBlink 30s linear infinite;
+}
+
+@media (max-width: 557px) {
+  .Toastify__toast.Toastify__toast-theme--light {
+    width: 90vw !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    border-radius: 8px !important;
+  }
+}
+
+.Toastify__toast-icon {
+  width: 40px !important;
+}
+
+.Toastify__toast-container--top-center {
+  margin-top: 68px !important;
+}

@@ -1,0 +1,20 @@
+/* swiper.css */
+.swiper-pagination {
+  position: absolute;
+  bottom: -5px !important;
+  width: 100%;
+  text-align: center;
+  z-index: 50;
+}
+
+/* Normal bullets */
+.swiper-pagination-bullet {
+  background: gray; /* Default color */
+  opacity: 0.6;
+}
+
+/* Active bullet */
+.swiper-pagination-bullet-active {
+  background: #10b981 !important; /* Tailwind emerald-500 as example */
+  opacity: 1;
+}
