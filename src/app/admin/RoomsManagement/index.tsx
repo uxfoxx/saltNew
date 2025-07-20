@@ -17,92 +17,129 @@ import { FaEye } from 'react-icons/fa';
 
 const { Option } = Select;
 
-interface Room {
-    roomNumber: string;
-    type: string;
-    price: string;
-    status: 'available' | 'occupied' | 'maintenance';
+interface RoomType {
+    id: string;
+    name: string;
+    description: string;
+    totalRooms: number;
+    availableRooms: number;
+    basePrice: string;
+    maxCapacity: number;
 }
 
 const RoomsManagement: React.FC = () => {
     const navigate = useNavigate();
-    const [data, setData] = useState<Room[]>([
-        { roomNumber: '101', type: 'Deluxe', price: '$200', status: 'available' },
-        { roomNumber: '102', type: 'Suite', price: '$350', status: 'occupied' },
-        { roomNumber: '201', type: 'Standard', price: '$150', status: 'maintenance' },
+    const [data, setData] = useState<RoomType[]>([
+        { 
+            id: 'deluxe-double', 
+            name: 'Deluxe Double Sharing Room', 
+            description: 'A perfect coastal retreat for couples or two guests seeking a serene and stylish escape',
+            totalRooms: 8,
+            availableRooms: 6,
+            basePrice: 'LKR 15,000',
+            maxCapacity: 2
+        },
+        { 
+            id: 'deluxe-triple', 
+            name: 'Deluxe Triple Sharing Room', 
+            description: 'Ideal for small families or a group of friends, offering extra space without compromising comfort',
+            totalRooms: 6,
+            availableRooms: 4,
+            basePrice: 'LKR 22,500',
+            maxCapacity: 3
+        },
+        { 
+            id: 'family-suite', 
+            name: 'Family Suite', 
+            description: 'Spacious accommodation perfect for families with children, featuring separate living areas',
+            totalRooms: 4,
+            availableRooms: 3,
+            basePrice: 'LKR 35,000',
+            maxCapacity: 5
+        },
+        { 
+            id: 'premium-suite', 
+            name: 'Premium Suite', 
+            description: 'Luxury accommodation with premium amenities and stunning ocean views',
+            totalRooms: 3,
+            availableRooms: 2,
+            basePrice: 'LKR 45,000',
+            maxCapacity: 4
+        },
     ]);
 
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [addModalOpen, setAddModalOpen] = useState(false);
-    const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+    const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null);
     const [form] = Form.useForm();
     const FaEyeIcon = FaEye as unknown as React.FC<React.SVGProps<SVGSVGElement>>;
 
-    const toggleRoomStatus = (roomNumber: string, block: boolean) => {
-        setData((prev) =>
-            prev.map((room) =>
-                room.roomNumber === roomNumber
-                    ? {
-                        ...room,
-                        status: block ? 'maintenance' : 'available',
-                    }
-                    : room
-            )
-        );
-    };
-
-    const handleAddRoom = (values: any) => {
-        const newRoom: Room = {
-            roomNumber: values.roomNumber,
-            type: values.type,
-            price: `$${values.price}`,
-            status: values.status,
+    const handleAddRoomType = (values: any) => {
+        const newRoomType: RoomType = {
+            id: values.name.toLowerCase().replace(/\s+/g, '-'),
+            name: values.name,
+            description: values.description,
+            totalRooms: 0,
+            availableRooms: 0,
+            basePrice: `LKR ${values.basePrice}`,
+            maxCapacity: values.maxCapacity,
         };
-        setData((prev) => [...prev, newRoom]);
+        setData((prev) => [...prev, newRoomType]);
         setAddModalOpen(false);
         form.resetFields();
     };
 
-    const columns: ColumnsType<Room> = [
-        { title: 'Room Number', dataIndex: 'roomNumber' },
-        { title: 'Type', dataIndex: 'type' },
-        { title: 'Price/Night', dataIndex: 'price' },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            render: (status: Room['status']) => {
-                const colorMap = {
-                    available: 'green',
-                    occupied: 'blue',
-                    maintenance: 'orange',
-                };
-                return <Tag color={colorMap[status]}>{status}</Tag>;
-            },
+    const columns: ColumnsType<RoomType> = [
+        { 
+            title: 'Room Type', 
+            dataIndex: 'name',
+            render: (name: string) => <span className="font-semibold">{name}</span>
+        },
+        { title: 'Description', dataIndex: 'description' },
+        { 
+            title: 'Base Price', 
+            dataIndex: 'basePrice',
+            render: (price: string) => <span className="font-medium text-green-600">{price}</span>
+        },
+        { 
+            title: 'Max Capacity', 
+            dataIndex: 'maxCapacity',
+            render: (capacity: number) => <span className="font-medium">{capacity} guests</span>
+        },
+        { 
+            title: 'Total Rooms', 
+            dataIndex: 'totalRooms',
+            render: (total: number) => <span className="font-medium">{total}</span>
+        },
+        { 
+            title: 'Available', 
+            dataIndex: 'availableRooms',
+            render: (available: number, record: RoomType) => (
+                <Tag color={available > 0 ? 'green' : 'red'}>
+                    {available}/{record.totalRooms}
+                </Tag>
+            )
         },
         {
             title: 'Actions',
             render: (_, record) => (
                 <Space>
-                    <Button size="small" onClick={() => {
-                        navigate(`/admin/rooms-management/${record.roomNumber}`);
-                    }}>
+                    <Button 
+                        size="small" 
+                        type="primary"
+                        onClick={() => {
+                            navigate(`/admin/rooms-management/${record.id}`);
+                        }}
+                    >
                         <FaEyeIcon className="h-4 w-4" />
+                        View Rooms
                     </Button>
                     <Button size="small" onClick={() => {
-                        setSelectedRoom(record);
+                        setSelectedRoomType(record);
                         setViewModalOpen(true);
                     }}>
                         Edit
                     </Button>
-                    {record.status === 'available' ? (
-                        <Button size="small" danger onClick={() => toggleRoomStatus(record.roomNumber, true)}>
-                            Block
-                        </Button>
-                    ) : (
-                        <Button size="small" type="primary" onClick={() => toggleRoomStatus(record.roomNumber, false)}>
-                            Unblock
-                        </Button>
-                    )}
                 </Space>
             ),
         },
@@ -111,9 +148,9 @@ const RoomsManagement: React.FC = () => {
     return (
         <div>
             <PageHeaderWithActions
-                title="Rooms Management"
+                title="Room Management - Room Types"
                 onNewClick={() => setAddModalOpen(true)}
-                newButtonLabel="Add New Room"
+                newButtonLabel="Add New Room Type"
                 showFilter={false}
                 showSearch={false}
             />
@@ -122,44 +159,43 @@ const RoomsManagement: React.FC = () => {
                 <Table
                     columns={columns}
                     dataSource={data}
-                    rowKey="roomNumber"
+                    rowKey="id"
                     pagination={false}
                 />
             </div>
 
-            {/* View Room Modal */}
+            {/* View/Edit Room Type Modal */}
             <Modal
                 open={viewModalOpen}
-                title="Room Details"
+                title="Room Type Details"
                 footer={null}
                 onCancel={() => {
                     setViewModalOpen(false);
-                    setSelectedRoom(null);
+                    setSelectedRoomType(null);
                 }}
                 centered
                 destroyOnClose
             >
-                {selectedRoom && (
+                {selectedRoomType && (
                     <Descriptions column={1} bordered>
-                        <Descriptions.Item label="Room Number">{selectedRoom.roomNumber}</Descriptions.Item>
-                        <Descriptions.Item label="Type">{selectedRoom.type}</Descriptions.Item>
-                        <Descriptions.Item label="Price">{selectedRoom.price}</Descriptions.Item>
-                        <Descriptions.Item label="Status">
-                            <Tag color={
-                                selectedRoom.status === 'available' ? 'green' :
-                                    selectedRoom.status === 'occupied' ? 'blue' : 'orange'
-                            }>
-                                {selectedRoom.status}
+                        <Descriptions.Item label="Name">{selectedRoomType.name}</Descriptions.Item>
+                        <Descriptions.Item label="Description">{selectedRoomType.description}</Descriptions.Item>
+                        <Descriptions.Item label="Base Price">{selectedRoomType.basePrice}</Descriptions.Item>
+                        <Descriptions.Item label="Max Capacity">{selectedRoomType.maxCapacity} guests</Descriptions.Item>
+                        <Descriptions.Item label="Total Rooms">{selectedRoomType.totalRooms}</Descriptions.Item>
+                        <Descriptions.Item label="Available Rooms">
+                            <Tag color={selectedRoomType.availableRooms > 0 ? 'green' : 'red'}>
+                                {selectedRoomType.availableRooms}/{selectedRoomType.totalRooms}
                             </Tag>
                         </Descriptions.Item>
                     </Descriptions>
                 )}
             </Modal>
 
-            {/* Add Room Modal */}
+            {/* Add Room Type Modal */}
             <Modal
                 open={addModalOpen}
-                title="Add New Room"
+                title="Add New Room Type"
                 onCancel={() => {
                     setAddModalOpen(false);
                     form.resetFields();
@@ -168,42 +204,38 @@ const RoomsManagement: React.FC = () => {
                 centered
                 destroyOnClose
             >
-                <Form layout="vertical" form={form} onFinish={handleAddRoom}>
+                <Form layout="vertical" form={form} onFinish={handleAddRoomType}>
                     <Form.Item
-                        label="Room Number"
-                        name="roomNumber"
-                        rules={[{ required: true, message: 'Please enter room number' }]}
+                        label="Room Type Name"
+                        name="name"
+                        rules={[{ required: true, message: 'Please enter room type name' }]}
                     >
-                        <Input />
+                        <Input placeholder="e.g., Presidential Suite, Ocean View Villa" />
                     </Form.Item>
                     <Form.Item
-                        label="Type"
-                        name="type"
-                        rules={[{ required: true, message: 'Please enter room type' }]}
+                        label="Description"
+                        name="description"
+                        rules={[{ required: true, message: 'Please enter description' }]}
                     >
-                        <Input />
+                        <Input.TextArea rows={3} placeholder="Describe the room type and its features..." />
                     </Form.Item>
                     <Form.Item
-                        label="Price (USD)"
-                        name="price"
-                        rules={[{ required: true, message: 'Please enter price' }]}
+                        label="Base Price (LKR)"
+                        name="basePrice"
+                        rules={[{ required: true, message: 'Please enter base price' }]}
                     >
-                        <Input type="number" />
+                        <Input type="number" placeholder="15000" />
                     </Form.Item>
                     <Form.Item
-                        label="Status"
-                        name="status"
-                        rules={[{ required: true, message: 'Please select status' }]}
+                        label="Maximum Capacity"
+                        name="maxCapacity"
+                        rules={[{ required: true, message: 'Please enter maximum capacity' }]}
                     >
-                        <Select placeholder="Select status">
-                            <Option value="available">Available</Option>
-                            <Option value="occupied">Occupied</Option>
-                            <Option value="maintenance">Maintenance</Option>
-                        </Select>
+                        <Input type="number" placeholder="2" min={1} max={10} />
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" className="w-full">
-                            Add Room
+                            Add Room Type
                         </Button>
                     </Form.Item>
                 </Form>

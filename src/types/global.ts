@@ -12,9 +12,14 @@ export interface CustomError extends Error {
 export interface Room {
     id: string;
     number: string;
+    name: string;
     type: string;
+    capacity: number;
     pricePerNight: number;
     status: 'available' | 'occupied' | 'maintenance' | 'cleaning' | 'ready';
+    bannerImage: string;
+    images: string[];
+    roomOptions: string[];
     currentGuest?: string;
     nextAppointment?: Date;
     lastCleaned?: Date;
