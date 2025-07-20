@@ -13,6 +13,7 @@ import {
     Modal,
     Form,
     message,
+    InputNumber,
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 import { FaEye, FaBed, FaUsers, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
@@ -54,6 +55,9 @@ const AllRooms: React.FC = () => {
     const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
     const [actionRoom, setActionRoom] = useState<RoomRecord | null>(null);
     const [form] = Form.useForm();
+    const [extendModalOpen, setExtendModalOpen] = useState(false);
+    const [extendForm] = Form.useForm();
+    const [paymentLink, setPaymentLink] = useState<string>('');
 
     // Sample room bookings
     const sampleRoomBookings: Booking[] = [
@@ -281,6 +285,65 @@ const AllRooms: React.FC = () => {
         message.success(`${currentBooking.guestName} checked out of room ${actionRoom.roomNumber} successfully`);
     };
 
+    const handleExtendBooking = (room: RoomRecord) => {
+        setActionRoom(room);
+        setExtendModalOpen(true);
+        setPaymentLink('');
+    };
+
+    const processExtension = (values: any) => {
+        if (!actionRoom) return;
+
+        const currentBooking = actionRoom.bookings.find(booking => 
+            booking.status === 'checked-in' || 
+            (booking.status === 'confirmed' && actionRoom.currentGuest === booking.guestName)
+        );
+
+        if (!currentBooking) {
+            message.error('No active booking found for this room');
+            return;
+        }
+
+        const extensionDays = values.extensionDays;
+        const pricePerNight = actionRoom.price;
+        const totalAmount = extensionDays * pricePerNight;
+        const paymentMethod = values.paymentMethod;
+
+        if (paymentMethod === 'online') {
+            // Generate payment link (in real app, this would call payment gateway API)
+            const generatedLink = `https://payment.saltmirissa.lk/extend/${actionRoom.id}/${currentBooking.id}?amount=${totalAmount}&days=${extensionDays}`;
+            setPaymentLink(generatedLink);
+            message.success('Payment link generated! Share this with the guest.');
+        } else {
+            // Manual cash payment
+            const newCheckOutDate = new Date(currentBooking.endDate);
+            newCheckOutDate.setDate(newCheckOutDate.getDate() + extensionDays);
+
+            // Update booking end date
+            setAllRooms(prev => prev.map(room => 
+                room.id === actionRoom.id 
+                    ? {
+                        ...room,
+                        bookings: room.bookings.map(booking =>
+                            booking.id === currentBooking.id
+                                ? { ...booking, endDate: newCheckOutDate }
+                                : booking
+                        )
+                    }
+                    : room
+            ));
+
+            setExtendModalOpen(false);
+            extendForm.resetFields();
+            message.success(`Booking extended by ${extensionDays} day(s) for LKR ${totalAmount.toLocaleString()}. Cash payment received.`);
+        }
+    };
+
+    const copyPaymentLink = () => {
+        navigator.clipboard.writeText(paymentLink);
+        message.success('Payment link copied to clipboard!');
+    };
+
     if (showOverview && selectedRoom) {
         const roomData: OverviewData = {
             title: `Room ${selectedRoom.roomNumber}`,
@@ -409,14 +472,23 @@ const AllRooms: React.FC = () => {
                             );
                             
                             return currentBooking ? (
-                                <Button 
-                                    size="small" 
-                                    danger
-                                    icon={<FaCalendarTimesIcon />}
-                                    onClick={() => handleCheckOut(record)}
-                                >
-                                    Check Out {currentBooking.guestName}
-                                </Button>
+                                <Space direction="vertical" size="small">
+                                    <Button 
+                                        size="small" 
+                                        danger
+                                        icon={<FaCalendarTimesIcon />}
+                                        onClick={() => handleCheckOut(record)}
+                                    >
+                                        Check Out {currentBooking.guestName}
+                                    </Button>
+                                    <Button 
+                                        size="small" 
+                                        type="default"
+                                        onClick={() => handleExtendBooking(record)}
+                                    >
+                                        Extend Booking
+                                    </Button>
+                                </Space>
                             ) : (
                                 <span className="text-xs text-gray-500">No active booking</span>
                             );
@@ -658,6 +730,129 @@ const AllRooms: React.FC = () => {
                             </div>
                             <p>Are you sure you want to check out <strong>{currentBooking.guestName}</strong> from room <strong>{actionRoom.roomNumber}</strong>?</p>
                             <p className="text-sm text-gray-500">The room status will be changed to "Cleaning" and will need to be cleaned before the next guest.</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No active booking found for this room</p>
+                        </div>
+                    );
+                })()}
+            </Modal>
+
+            {/* Extend Booking Modal */}
+            <Modal
+                title={`Extend Booking - Room ${actionRoom?.roomNumber}`}
+                open={extendModalOpen}
+                onCancel={() => {
+                    setExtendModalOpen(false);
+                    extendForm.resetFields();
+                    setPaymentLink('');
+                }}
+                footer={null}
+                centered
+                width={600}
+            >
+                {actionRoom && (() => {
+                    const currentBooking = actionRoom.bookings.find(booking => 
+                        booking.status === 'checked-in' || 
+                        (booking.status === 'confirmed' && actionRoom.currentGuest === booking.guestName)
+                    );
+
+                    return currentBooking ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded border">
+                                <h3 className="font-semibold text-blue-800 mb-2">Current Booking</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>Guest:</strong> {currentBooking.guestName}</div>
+                                    <div><strong>Phone:</strong> {currentBooking.phone}</div>
+                                    <div><strong>Email:</strong> {currentBooking.email}</div>
+                                    <div><strong>Current Check-out:</strong> {new Date(currentBooking.endDate).toLocaleDateString()}</div>
+                                    <div><strong>Room Price:</strong> LKR {actionRoom.price.toLocaleString()}/night</div>
+                                </div>
+                            </div>
+
+                            {!paymentLink ? (
+                                <Form form={extendForm} onFinish={processExtension} layout="vertical">
+                                    <Form.Item
+                                        label="Extension Days"
+                                        name="extensionDays"
+                                        rules={[{ required: true, message: 'Please enter number of days' }]}
+                                    >
+                                        <InputNumber 
+                                            min={1} 
+                                            max={30} 
+                                            className="w-full" 
+                                            placeholder="Number of additional days"
+                                            onChange={(value) => {
+                                                if (value) {
+                                                    const total = value * actionRoom.price;
+                                                    message.info(`Total amount: LKR ${total.toLocaleString()}`);
+                                                }
+                                            }}
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        label="Payment Method"
+                                        name="paymentMethod"
+                                        rules={[{ required: true, message: 'Please select payment method' }]}
+                                    >
+                                        <Select placeholder="Select payment method">
+                                            <Option value="online">Generate Payment Link</Option>
+                                            <Option value="cash">Cash Payment (Manual)</Option>
+                                        </Select>
+                                    </Form.Item>
+                                    <Form.Item
+                                        label="Extension Notes"
+                                        name="notes"
+                                    >
+                                        <Input.TextArea rows={3} placeholder="Any special notes for the extension..." />
+                                    </Form.Item>
+                                    <Form.Item>
+                                        <Space className="w-full justify-end">
+                                            <Button onClick={() => setExtendModalOpen(false)}>Cancel</Button>
+                                            <Button type="primary" htmlType="submit">
+                                                Process Extension
+                                            </Button>
+                                        </Space>
+                                    </Form.Item>
+                                </Form>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="bg-green-50 p-4 rounded border">
+                                        <h3 className="font-semibold text-green-800 mb-2">Payment Link Generated</h3>
+                                        <p className="text-sm text-green-700 mb-3">
+                                            Share this link with {currentBooking.guestName} to complete the payment:
+                                        </p>
+                                        <div className="bg-white p-3 rounded border break-all text-sm font-mono">
+                                            {paymentLink}
+                                        </div>
+                                        <div className="mt-3 flex space-x-2">
+                                            <Button type="primary" onClick={copyPaymentLink}>
+                                                Copy Link
+                                            </Button>
+                                            <Button 
+                                                onClick={() => window.open(`mailto:${currentBooking.email}?subject=Booking Extension Payment&body=Please use this link to pay for your booking extension: ${paymentLink}`)}
+                                            >
+                                                Send via Email
+                                            </Button>
+                                            <Button 
+                                                onClick={() => window.open(`https://wa.me/${currentBooking.phone?.replace(/[^0-9]/g, '')}?text=Hi ${currentBooking.guestName}, please use this link to pay for your booking extension: ${paymentLink}`)}
+                                            >
+                                                Send via WhatsApp
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <Button onClick={() => {
+                                            setExtendModalOpen(false);
+                                            setPaymentLink('');
+                                            extendForm.resetFields();
+                                        }}>
+                                            Close
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="text-center py-8">
