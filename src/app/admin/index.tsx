@@ -11,3 +11,5 @@ export { default as RoomOverview } from './RoomOverview';
 export { default as TableOverview } from './TableOverview';
 export { default as Reports } from './Reports';
 export { default as PaymentManagement } from './PaymentManagement';
+export { default as AllRooms } from './AllRooms';
+export { default as AllTables } from './AllTables';

@@ -62,6 +62,22 @@ const adminNavigationConfig: AdminNavigationItem[] = [
         isSlider: true,
     },
     {
+        title: 'All Rooms',
+        subtitle: 'Complete Room List',
+        icon: <HomeOutlined />,
+        path: '/admin/all-rooms',
+        role: ['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'],
+        isSlider: true,
+    },
+    {
+        title: 'All Tables',
+        subtitle: 'Complete Table List',
+        icon: <TableOutlined />,
+        path: '/admin/all-tables',
+        role: ['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'],
+        isSlider: true,
+    },
+    {
         title: 'Guests',
         subtitle: 'Manage Guest Profiles',
         icon: <UserOutlined />,

@@ -5,6 +5,7 @@ import PrivateRoute from './auth/PrivateRoute';
 import { Error404Page, ForgotPassword, SignIn, SignUp, Unauthorized, VerifyEmail } from './main';
 import { About, StayWithUs, Home, DineWithUs, RoomView, Menu, ContactUs, BlogPage, BlogView, TableView, RoomBook, TableBook, UserProfile } from './pages';
 import { AdminUsers, Dashboard, Guests, RoomBookings, RoomOverview, RoomsManagement, Settings, TableManagement, TableOverview, TableReservations, Reports, PaymentManagement } from './admin';
+import { AllRooms, AllTables } from './admin';
 import { PrivacyPolicy, RefundPolicy, TermsAndConditions } from './pages/policies';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -64,6 +65,8 @@ const App: React.FC = () => {
             <Route path="/admin/table-management/:id" element={<PrivateRoute element={<TableOverview />} roles={['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST']} />} />
             <Route path="/admin/reports" element={<PrivateRoute element={<Reports />} roles={['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST']} />} />
             <Route path="/admin/payment-management" element={<PrivateRoute element={<PaymentManagement />} roles={['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST']} />} />
+            <Route path="/admin/all-rooms" element={<PrivateRoute element={<AllRooms />} roles={['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST']} />} />
+            <Route path="/admin/all-tables" element={<PrivateRoute element={<AllTables />} roles={['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST']} />} />
             {/* Common Routes */}
             <Route path="*" element={<Error404Page />} />
             <Route path="unauthorized" element={<Unauthorized />} />
