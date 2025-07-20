@@ -14,6 +14,7 @@ import {
     Form,
     message,
     TimePicker,
+    InputNumber,
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 import { FaEye, FaUtensils, FaUsers, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
@@ -51,6 +52,9 @@ const AllTables: React.FC = () => {
     const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
     const [actionTable, setActionTable] = useState<TableRecord | null>(null);
     const [form] = Form.useForm();
+    const [extendModalOpen, setExtendModalOpen] = useState(false);
+    const [extendForm] = Form.useForm();
+    const [paymentLink, setPaymentLink] = useState<string>('');
 
     // Sample table bookings
     const sampleTableBookings: Booking[] = [
@@ -291,6 +295,66 @@ const AllTables: React.FC = () => {
         message.success(`${currentReservation.guestName} checked out of table ${actionTable.tableNumber} successfully`);
     };
 
+    const handleExtendReservation = (table: TableRecord) => {
+        setActionTable(table);
+        setExtendModalOpen(true);
+        setPaymentLink('');
+    };
+
+    const processExtension = (values: any) => {
+        if (!actionTable) return;
+
+        const currentReservation = actionTable.bookings.find(booking => 
+            booking.status === 'checked-in' || 
+            (booking.status === 'confirmed' && actionTable.currentReservation === booking.guestName)
+        );
+
+        if (!currentReservation) {
+            message.error('No active reservation found for this table');
+            return;
+        }
+
+        const extensionHours = values.extensionHours;
+        const pricePerHour = 2000; // Base price per hour for table extension
+        const totalAmount = extensionHours * pricePerHour;
+        const paymentMethod = values.paymentMethod;
+
+        if (paymentMethod === 'online') {
+            // Generate payment link (in real app, this would call payment gateway API)
+            const generatedLink = `https://payment.saltmirissa.lk/extend-table/${actionTable.id}/${currentReservation.id}?amount=${totalAmount}&hours=${extensionHours}`;
+            setPaymentLink(generatedLink);
+            message.success('Payment link generated! Share this with the guest.');
+        } else {
+            // Manual cash payment
+            const newEndTime = new Date(currentReservation.endDate);
+            newEndTime.setHours(newEndTime.getHours() + extensionHours);
+
+            // Update reservation end time
+            setAllTables(prev => prev.map(table => 
+                table.id === actionTable.id 
+                    ? {
+                        ...table,
+                        bookings: table.bookings.map(booking =>
+                            booking.id === currentReservation.id
+                                ? { ...booking, endDate: newEndTime }
+                                : booking
+                        ),
+                        reservationTime: `${actionTable.reservationTime?.split(' - ')[0]} - ${newEndTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`
+                    }
+                    : table
+            ));
+
+            setExtendModalOpen(false);
+            extendForm.resetFields();
+            message.success(`Reservation extended by ${extensionHours} hour(s) for LKR ${totalAmount.toLocaleString()}. Cash payment received.`);
+        }
+    };
+
+    const copyPaymentLink = () => {
+        navigator.clipboard.writeText(paymentLink);
+        message.success('Payment link copied to clipboard!');
+    };
+
     if (showOverview && selectedTable) {
         const tableData: OverviewData = {
             title: `Table ${selectedTable.tableNumber}`,
@@ -426,14 +490,23 @@ const AllTables: React.FC = () => {
                             );
                             
                             return currentReservation ? (
-                                <Button 
-                                    size="small" 
-                                    danger
-                                    icon={<FaCalendarTimesIcon />}
-                                    onClick={() => handleCheckOut(record)}
-                                >
-                                    Check Out {currentReservation.guestName}
-                                </Button>
+                                <Space direction="vertical" size="small">
+                                    <Button 
+                                        size="small" 
+                                        danger
+                                        icon={<FaCalendarTimesIcon />}
+                                        onClick={() => handleCheckOut(record)}
+                                    >
+                                        Check Out {currentReservation.guestName}
+                                    </Button>
+                                    <Button 
+                                        size="small" 
+                                        type="default"
+                                        onClick={() => handleExtendReservation(record)}
+                                    >
+                                        Extend Reservation
+                                    </Button>
+                                </Space>
                             ) : (
                                 <span className="text-xs text-gray-500">No active reservation</span>
                             );
@@ -683,6 +756,131 @@ const AllTables: React.FC = () => {
                             </div>
                             <p>Are you sure you want to check out <strong>{currentReservation.guestName}</strong> from table <strong>{actionTable.tableNumber}</strong>?</p>
                             <p className="text-sm text-gray-500">The table status will be changed to "Preparing" and will need to be cleaned and set up for the next guests.</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No active reservation found for this table</p>
+                        </div>
+                    );
+                })()}
+            </Modal>
+
+            {/* Extend Reservation Modal */}
+            <Modal
+                title={`Extend Reservation - Table ${actionTable?.tableNumber}`}
+                open={extendModalOpen}
+                onCancel={() => {
+                    setExtendModalOpen(false);
+                    extendForm.resetFields();
+                    setPaymentLink('');
+                }}
+                footer={null}
+                centered
+                width={600}
+            >
+                {actionTable && (() => {
+                    const currentReservation = actionTable.bookings.find(booking => 
+                        booking.status === 'checked-in' || 
+                        (booking.status === 'confirmed' && actionTable.currentReservation === booking.guestName)
+                    );
+
+                    return currentReservation ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded border">
+                                <h3 className="font-semibold text-blue-800 mb-2">Current Reservation</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>Guest:</strong> {currentReservation.guestName}</div>
+                                    <div><strong>Phone:</strong> {currentReservation.phone}</div>
+                                    <div><strong>Email:</strong> {currentReservation.email}</div>
+                                    <div><strong>Party Size:</strong> {currentReservation.partySize}</div>
+                                    <div><strong>Current End Time:</strong> {new Date(currentReservation.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    <div><strong>Extension Rate:</strong> LKR 2,000/hour</div>
+                                </div>
+                            </div>
+
+                            {!paymentLink ? (
+                                <Form form={extendForm} onFinish={processExtension} layout="vertical">
+                                    <Form.Item
+                                        label="Extension Hours"
+                                        name="extensionHours"
+                                        rules={[{ required: true, message: 'Please enter number of hours' }]}
+                                    >
+                                        <InputNumber 
+                                            min={0.5} 
+                                            max={8} 
+                                            step={0.5}
+                                            className="w-full" 
+                                            placeholder="Number of additional hours"
+                                            onChange={(value) => {
+                                                if (value) {
+                                                    const total = value * 2000;
+                                                    message.info(`Total amount: LKR ${total.toLocaleString()}`);
+                                                }
+                                            }}
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        label="Payment Method"
+                                        name="paymentMethod"
+                                        rules={[{ required: true, message: 'Please select payment method' }]}
+                                    >
+                                        <Select placeholder="Select payment method">
+                                            <Option value="online">Generate Payment Link</Option>
+                                            <Option value="cash">Cash Payment (Manual)</Option>
+                                        </Select>
+                                    </Form.Item>
+                                    <Form.Item
+                                        label="Extension Notes"
+                                        name="notes"
+                                    >
+                                        <Input.TextArea rows={3} placeholder="Any special notes for the extension..." />
+                                    </Form.Item>
+                                    <Form.Item>
+                                        <Space className="w-full justify-end">
+                                            <Button onClick={() => setExtendModalOpen(false)}>Cancel</Button>
+                                            <Button type="primary" htmlType="submit">
+                                                Process Extension
+                                            </Button>
+                                        </Space>
+                                    </Form.Item>
+                                </Form>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="bg-green-50 p-4 rounded border">
+                                        <h3 className="font-semibold text-green-800 mb-2">Payment Link Generated</h3>
+                                        <p className="text-sm text-green-700 mb-3">
+                                            Share this link with {currentReservation.guestName} to complete the payment:
+                                        </p>
+                                        <div className="bg-white p-3 rounded border break-all text-sm font-mono">
+                                            {paymentLink}
+                                        </div>
+                                        <div className="mt-3 flex space-x-2">
+                                            <Button type="primary" onClick={copyPaymentLink}>
+                                                Copy Link
+                                            </Button>
+                                            <Button 
+                                                onClick={() => window.open(`mailto:${currentReservation.email}?subject=Table Reservation Extension Payment&body=Please use this link to pay for your table extension: ${paymentLink}`)}
+                                            >
+                                                Send via Email
+                                            </Button>
+                                            <Button 
+                                                onClick={() => window.open(`https://wa.me/${currentReservation.phone?.replace(/[^0-9]/g, '')}?text=Hi ${currentReservation.guestName}, please use this link to pay for your table extension: ${paymentLink}`)}
+                                            >
+                                                Send via WhatsApp
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <Button onClick={() => {
+                                            setExtendModalOpen(false);
+                                            setPaymentLink('');
+                                            extendForm.resetFields();
+                                        }}>
+                                            Close
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="text-center py-8">
