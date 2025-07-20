@@ -58,14 +58,19 @@ const TableReservations: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
 
+    // Sort data by ID in descending order (latest first)
+    const sortedData = useMemo(() => {
+        return [...data].sort((a, b) => b.id - a.id);
+    }, [data]);
+
     // Filtered data based on search + status
     const filteredData = useMemo(() => {
-        return data.filter((record) => {
+        return sortedData.filter((record) => {
             const matchesSearch = record.guest.toLowerCase().includes(searchText.toLowerCase());
             const matchesStatus = filterStatus === 'all' || record.status === filterStatus;
             return matchesSearch && matchesStatus;
         });
-    }, [data, searchText, filterStatus]);
+    }, [sortedData, searchText, filterStatus]);
 
     const handleNewReservation = (values: any) => {
         const newId = data.length + 1;

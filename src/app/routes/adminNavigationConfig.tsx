@@ -7,6 +7,8 @@ import {
     UserOutlined,
     TeamOutlined,
     SettingOutlined,
+    BarChartOutlined,
+    CreditCardOutlined,
 } from '@ant-design/icons';
 
 export interface AdminNavigationItem {
@@ -72,6 +74,22 @@ const adminNavigationConfig: AdminNavigationItem[] = [
         subtitle: 'Manage Admin Accounts',
         icon: <TeamOutlined />,
         path: '/admin/admin-users',
+        role: ['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'],
+        isSlider: true,
+    },
+    {
+        title: 'Reports',
+        subtitle: 'Revenue and Analytics',
+        icon: <BarChartOutlined />,
+        path: '/admin/reports',
+        role: ['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'],
+        isSlider: true,
+    },
+    {
+        title: 'Payment Management',
+        subtitle: 'Manage Payments and Refunds',
+        icon: <CreditCardOutlined />,
+        path: '/admin/payment-management',
         role: ['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'],
         isSlider: true,
     },

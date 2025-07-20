@@ -9,3 +9,5 @@ export { default as AdminUsers } from './AdminUsers';
 export { default as Settings } from './Settings';
 export { default as RoomOverview } from './RoomOverview';
 export { default as TableOverview } from './TableOverview';
+export { default as Reports } from './Reports';
+export { default as PaymentManagement } from './PaymentManagement';

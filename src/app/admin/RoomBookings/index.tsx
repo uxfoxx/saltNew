@@ -60,14 +60,19 @@ const RoomBookings: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [phoneNumber, setPhoneNumber] = useState('');
+    // Sort data by ID in descending order (latest first)
+    const sortedData = useMemo(() => {
+        return [...data].sort((a, b) => b.id - a.id);
+    }, [data]);
+
 
     const filteredData = useMemo(() => {
-        return data.filter((record) => {
+        return sortedData.filter((record) => {
             const matchesSearch = record.guest.toLowerCase().includes(searchText.toLowerCase());
             const matchesStatus = filterStatus === 'all' || record.status === filterStatus || record.payment === filterStatus;
             return matchesSearch && matchesStatus;
         });
-    }, [data, searchText, filterStatus]);
+    }, [sortedData, searchText, filterStatus]);
 
     const handleNewBooking = (values: any) => {
         const newId = data.length + 1;
