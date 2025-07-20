@@ -42,7 +42,19 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ element, roles }) => {
     return <SplashScreen />;
   }
 
+  // Bypass authentication for admin routes - allow direct access
+  const isAdminRoute = adminNavigationConfig.some((route) => {
+    if (!route.path) return false;
+    const pathRegex = new RegExp(`^${route.path.replace(/:\w+/g, '[^/]+')}$`);
+    return pathRegex.test(location.pathname);
+  });
 
+  // If it's an admin route, bypass authentication
+  if (isAdminRoute) {
+    return <AdminLayout>{element}</AdminLayout>;
+  }
+
+  // For non-admin routes, keep original authentication logic
   if ((!isAuthenticated || roles !== 'GUEST') && !hasRequiredRole) {
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" />;
@@ -75,17 +87,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ element, roles }) => {
   // );
 
 
-  const isAdminRoute = adminNavigationConfig.some((route) => {
-    if (!route.path) return false;
-    const pathRegex = new RegExp(`^${route.path.replace(/:\w+/g, '[^/]+')}$`);
-    return pathRegex.test(location.pathname);
-  });
-
-  return (['SUPER_ADMIN', 'MANAGER', 'STAFF', 'CLIENT', 'GUEST'].includes(userType) && isAdminRoute) ? (
-    <AdminLayout>{element}</AdminLayout>
-  ) : (
-    <UserLayout>{element}</UserLayout>
-  );
+  return <UserLayout>{element}</UserLayout>;
 
 };
 

@@ -42,7 +42,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         return ROLE_MAP[roleNumber] || 'GUEST';
     };
 
-    const userType = mapRoleFromEnv(me?.role);
+    // For bypass mode, default to SUPER_ADMIN if no user is logged in
+    const userType = me?.role ? mapRoleFromEnv(me?.role) : 'SUPER_ADMIN';
 
     useEffect(() => {
         const handleResize = () => {
