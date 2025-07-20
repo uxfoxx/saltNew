@@ -21,6 +21,8 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return 'bg-yellow-100 text-yellow-800';
       case 'ready':
         return 'bg-green-100 text-green-800';
+      case 'preparing':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }

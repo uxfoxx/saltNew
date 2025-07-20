@@ -18,96 +18,106 @@ import { FaEye } from 'react-icons/fa';
 
 const { Option } = Select;
 
-interface TableRecord {
-    tableNumber: string;
-    seats: number;
-    status: 'available' | 'out-of-service';
+interface TableType {
+    id: string;
+    name: string;
+    description: string;
+    totalTables: number;
+    availableTables: number;
+    location: string;
 }
 
 const TableManagement: React.FC = () => {
     const navigate = useNavigate();
-    const [data, setData] = useState<TableRecord[]>([
-        { tableNumber: 'T1', seats: 4, status: 'available' },
-        { tableNumber: 'T2', seats: 6, status: 'available' },
-        { tableNumber: 'T3', seats: 2, status: 'out-of-service' },
+    const [data, setData] = useState<TableType[]>([
+        { 
+            id: 'beachfront', 
+            name: 'Beachfront Dining', 
+            description: 'Tables with direct beach view and ocean breeze',
+            totalTables: 8,
+            availableTables: 6,
+            location: 'Beachfront Area'
+        },
+        { 
+            id: 'indoor', 
+            name: 'Indoor Dining', 
+            description: 'Climate-controlled indoor seating area',
+            totalTables: 12,
+            availableTables: 10,
+            location: 'Ground Floor'
+        },
+        { 
+            id: 'lounge', 
+            name: 'Lounge', 
+            description: 'Air-conditioned upper floor with sea view',
+            totalTables: 6,
+            availableTables: 4,
+            location: 'Upper Floor'
+        },
     ]);
 
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [addModalOpen, setAddModalOpen] = useState(false);
-    const [selectedTable, setSelectedTable] = useState<TableRecord | null>(null);
+    const [selectedTableType, setSelectedTableType] = useState<TableType | null>(null);
     const [form] = Form.useForm();
     const FaEyeIcon = FaEye as unknown as React.FC<React.SVGProps<SVGSVGElement>>;
 
-    const toggleTableStatus = (tableNumber: string, outOfService: boolean) => {
-        setData((prev) =>
-            prev.map((table) =>
-                table.tableNumber === tableNumber
-                    ? {
-                        ...table,
-                        status: outOfService ? 'out-of-service' : 'available',
-                    }
-                    : table
-            )
-        );
-    };
-
-    const handleAddTable = (values: any) => {
-        const newTable: TableRecord = {
-            tableNumber: values.tableNumber,
-            seats: values.seats,
-            status: values.status,
+    const handleAddTableType = (values: any) => {
+        const newTableType: TableType = {
+            id: values.name.toLowerCase().replace(/\s+/g, '-'),
+            name: values.name,
+            description: values.description,
+            totalTables: 0,
+            availableTables: 0,
+            location: values.location,
         };
-        setData((prev) => [...prev, newTable]);
+        setData((prev) => [...prev, newTableType]);
         setAddModalOpen(false);
         form.resetFields();
     };
 
-    const columns: ColumnsType<TableRecord> = [
-        { title: 'Table Number', dataIndex: 'tableNumber' },
-        { title: 'Seats', dataIndex: 'seats' },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            render: (status: TableRecord['status']) => {
-                return (
-                    <Tag color={status === 'available' ? 'green' : 'red'}>
-                        {status}
-                    </Tag>
-                );
-            },
+    const columns: ColumnsType<TableType> = [
+        { 
+            title: 'Table Type', 
+            dataIndex: 'name',
+            render: (name: string) => <span className="font-semibold">{name}</span>
+        },
+        { title: 'Description', dataIndex: 'description' },
+        { title: 'Location', dataIndex: 'location' },
+        { 
+            title: 'Total Tables', 
+            dataIndex: 'totalTables',
+            render: (total: number) => <span className="font-medium">{total}</span>
+        },
+        { 
+            title: 'Available', 
+            dataIndex: 'availableTables',
+            render: (available: number, record: TableType) => (
+                <Tag color={available > 0 ? 'green' : 'red'}>
+                    {available}/{record.totalTables}
+                </Tag>
+            )
         },
         {
             title: 'Actions',
             render: (_, record) => (
                 <Space>
-                    <Button size="small" onClick={() => {
-                        navigate(`/admin/table-management/${record.tableNumber}`);
-                    }}>
+                    <Button 
+                        size="small" 
+                        type="primary"
+                        onClick={() => {
+                            navigate(`/admin/table-management/${record.id}`);
+                        }}
+                    >
                         <FaEyeIcon className="h-4 w-4" />
+                        View Tables
                     </Button>
                     <Button size="small" onClick={() => {
-                        setSelectedTable(record);
+                        setSelectedTableType(record);
                         setViewModalOpen(true);
                     }}>
                         Edit
                     </Button>
-                    {record.status === 'available' ? (
-                        <Button
-                            size="small"
-                            danger
-                            onClick={() => toggleTableStatus(record.tableNumber, true)}
-                        >
-                            Set Out of Service
-                        </Button>
-                    ) : (
-                        <Button
-                            size="small"
-                            type="primary"
-                            onClick={() => toggleTableStatus(record.tableNumber, false)}
-                        >
-                            Set Available
-                        </Button>
-                    )}
                 </Space>
             ),
         },
@@ -116,9 +126,9 @@ const TableManagement: React.FC = () => {
     return (
         <div>
             <PageHeaderWithActions
-                title="Table Management"
+                title="Table Management - Table Types"
                 onNewClick={() => setAddModalOpen(true)}
-                newButtonLabel="Add New Table"
+                newButtonLabel="Add New Table Type"
                 showFilter={false}
                 showSearch={false}
             />
@@ -127,40 +137,42 @@ const TableManagement: React.FC = () => {
                 <Table
                     columns={columns}
                     dataSource={data}
-                    rowKey="tableNumber"
+                    rowKey="id"
                     pagination={false}
                 />
             </div>
 
-            {/* View Table Modal */}
+            {/* View/Edit Table Type Modal */}
             <Modal
                 open={viewModalOpen}
-                title="Table Details"
+                title="Table Type Details"
                 footer={null}
                 onCancel={() => {
                     setViewModalOpen(false);
-                    setSelectedTable(null);
+                    setSelectedTableType(null);
                 }}
                 centered
                 destroyOnClose
             >
-                {selectedTable && (
+                {selectedTableType && (
                     <Descriptions column={1} bordered>
-                        <Descriptions.Item label="Table Number">{selectedTable.tableNumber}</Descriptions.Item>
-                        <Descriptions.Item label="Seats">{selectedTable.seats}</Descriptions.Item>
-                        <Descriptions.Item label="Status">
-                            <Tag color={selectedTable.status === 'available' ? 'green' : 'red'}>
-                                {selectedTable.status}
+                        <Descriptions.Item label="Name">{selectedTableType.name}</Descriptions.Item>
+                        <Descriptions.Item label="Description">{selectedTableType.description}</Descriptions.Item>
+                        <Descriptions.Item label="Location">{selectedTableType.location}</Descriptions.Item>
+                        <Descriptions.Item label="Total Tables">{selectedTableType.totalTables}</Descriptions.Item>
+                        <Descriptions.Item label="Available Tables">
+                            <Tag color={selectedTableType.availableTables > 0 ? 'green' : 'red'}>
+                                {selectedTableType.availableTables}/{selectedTableType.totalTables}
                             </Tag>
                         </Descriptions.Item>
                     </Descriptions>
                 )}
             </Modal>
 
-            {/* Add Table Modal */}
+            {/* Add Table Type Modal */}
             <Modal
                 open={addModalOpen}
-                title="Add New Table"
+                title="Add New Table Type"
                 onCancel={() => {
                     setAddModalOpen(false);
                     form.resetFields();
@@ -169,34 +181,31 @@ const TableManagement: React.FC = () => {
                 centered
                 destroyOnClose
             >
-                <Form layout="vertical" form={form} onFinish={handleAddTable}>
+                <Form layout="vertical" form={form} onFinish={handleAddTableType}>
                     <Form.Item
-                        label="Table Number"
-                        name="tableNumber"
-                        rules={[{ required: true, message: 'Please enter table number' }]}
+                        label="Table Type Name"
+                        name="name"
+                        rules={[{ required: true, message: 'Please enter table type name' }]}
                     >
-                        <Input />
+                        <Input placeholder="e.g., VIP Dining, Garden Tables" />
                     </Form.Item>
                     <Form.Item
-                        label="Seats"
-                        name="seats"
-                        rules={[{ required: true, message: 'Please enter number of seats' }]}
+                        label="Description"
+                        name="description"
+                        rules={[{ required: true, message: 'Please enter description' }]}
                     >
-                        <InputNumber min={1} className="w-full" />
+                        <Input.TextArea rows={3} placeholder="Describe the table type and its features..." />
                     </Form.Item>
                     <Form.Item
-                        label="Status"
-                        name="status"
-                        rules={[{ required: true, message: 'Please select status' }]}
+                        label="Location"
+                        name="location"
+                        rules={[{ required: true, message: 'Please enter location' }]}
                     >
-                        <Select placeholder="Select status">
-                            <Option value="available">Available</Option>
-                            <Option value="out-of-service">Out of Service</Option>
-                        </Select>
+                        <Input placeholder="e.g., Rooftop, Garden Area, Main Hall" />
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" className="w-full">
-                            Add Table
+                            Add Table Type
                         </Button>
                     </Form.Item>
                 </Form>

@@ -25,7 +25,7 @@ export interface Table {
     id: string;
     number: string;
     seats: number;
-    status: 'available' | 'occupied' | 'out-of-service' | 'needs-cleaning' | 'ready';
+    status: 'available' | 'occupied' | 'out-of-service' | 'needs-cleaning' | 'ready' | 'preparing';
     currentReservation?: string;
     nextReservation?: Date;
     lastCleaned?: Date;
