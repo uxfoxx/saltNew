@@ -218,25 +218,51 @@ const AllRooms: React.FC = () => {
     const processCheckIn = (values: any) => {
         if (!actionRoom) return;
         
+        // Find the booking that should be checked in (today's booking)
+        const today = new Date();
+        const todayBooking = actionRoom.bookings.find(booking => {
+            const checkInDate = new Date(booking.startDate);
+            return checkInDate.toDateString() === today.toDateString() && booking.status === 'confirmed';
+        });
+
+        if (!todayBooking) {
+            message.error('No confirmed booking found for today');
+            return;
+        }
+
         setAllRooms(prev => prev.map(room => 
             room.id === actionRoom.id 
                 ? { 
                     ...room, 
                     status: 'occupied',
-                    currentGuest: values.guestName,
+                    currentGuest: todayBooking.guestName,
                     checkInTime: new Date().toISOString()
                 }
                 : room
         ));
         
+        // Update booking status to checked-in
+        // In a real app, this would also update the bookings database
+        
         setCheckInModalOpen(false);
         form.resetFields();
-        message.success(`Room ${actionRoom.roomNumber} checked in successfully`);
+        message.success(`${todayBooking.guestName} checked into room ${actionRoom.roomNumber} successfully`);
     };
 
     const processCheckOut = () => {
         if (!actionRoom) return;
         
+        // Find the current booking that should be checked out
+        const currentBooking = actionRoom.bookings.find(booking => 
+            booking.status === 'checked-in' || 
+            (booking.status === 'confirmed' && actionRoom.currentGuest === booking.guestName)
+        );
+
+        if (!currentBooking) {
+            message.error('No active booking found for this room');
+            return;
+        }
+
         setAllRooms(prev => prev.map(room => 
             room.id === actionRoom.id 
                 ? { 
@@ -248,8 +274,11 @@ const AllRooms: React.FC = () => {
                 : room
         ));
         
+        // Update booking status to checked-out
+        // In a real app, this would also update the bookings database
+        
         setCheckOutModalOpen(false);
-        message.success(`Room ${actionRoom.roomNumber} checked out successfully`);
+        message.success(`${currentBooking.guestName} checked out of room ${actionRoom.roomNumber} successfully`);
     };
 
     if (showOverview && selectedRoom) {
@@ -351,23 +380,47 @@ const AllRooms: React.FC = () => {
                         Details
                     </Button>
                     {record.status === 'available' || record.status === 'ready' ? (
-                        <Button 
-                            size="small" 
-                            type="primary"
-                            icon={<FaCalendarCheckIcon />}
-                            onClick={() => handleCheckIn(record)}
-                        >
-                            Check In
-                        </Button>
+                        (() => {
+                            // Check if there's a booking for today
+                            const today = new Date();
+                            const todayBooking = record.bookings.find(booking => {
+                                const checkInDate = new Date(booking.startDate);
+                                return checkInDate.toDateString() === today.toDateString() && booking.status === 'confirmed';
+                            });
+                            
+                            return todayBooking ? (
+                                <Button 
+                                    size="small" 
+                                    type="primary"
+                                    icon={<FaCalendarCheckIcon />}
+                                    onClick={() => handleCheckIn(record)}
+                                >
+                                    Check In {todayBooking.guestName}
+                                </Button>
+                            ) : (
+                                <span className="text-xs text-gray-500">No booking today</span>
+                            );
+                        })()
                     ) : record.status === 'occupied' ? (
-                        <Button 
-                            size="small" 
-                            danger
-                            icon={<FaCalendarTimesIcon />}
-                            onClick={() => handleCheckOut(record)}
-                        >
-                            Check Out
-                        </Button>
+                        (() => {
+                            const currentBooking = record.bookings.find(booking => 
+                                booking.status === 'checked-in' || 
+                                (booking.status === 'confirmed' && record.currentGuest === booking.guestName)
+                            );
+                            
+                            return currentBooking ? (
+                                <Button 
+                                    size="small" 
+                                    danger
+                                    icon={<FaCalendarTimesIcon />}
+                                    onClick={() => handleCheckOut(record)}
+                                >
+                                    Check Out {currentBooking.guestName}
+                                </Button>
+                            ) : (
+                                <span className="text-xs text-gray-500">No active booking</span>
+                            );
+                        })()
                     ) : null}
                 </Space>
             )
@@ -517,7 +570,7 @@ const AllRooms: React.FC = () => {
 
             {/* Check In Modal */}
             <Modal
-                title="Check In Guest"
+                title={`Check In Guest - Room ${actionRoom?.roomNumber}`}
                 open={checkInModalOpen}
                 onCancel={() => {
                     setCheckInModalOpen(false);
@@ -526,39 +579,92 @@ const AllRooms: React.FC = () => {
                 footer={null}
                 centered
             >
-                <Form form={form} onFinish={processCheckIn} layout="vertical">
-                    <Form.Item
-                        label="Guest Name"
-                        name="guestName"
-                        rules={[{ required: true, message: 'Please enter guest name' }]}
-                    >
-                        <Input placeholder="Enter guest name" />
-                    </Form.Item>
-                    <Form.Item
-                        label="Check-in Notes"
-                        name="notes"
-                    >
-                        <Input.TextArea rows={3} placeholder="Any special notes for check-in..." />
-                    </Form.Item>
-                    <Form.Item>
-                        <Space className="w-full justify-end">
-                            <Button onClick={() => setCheckInModalOpen(false)}>Cancel</Button>
-                            <Button type="primary" htmlType="submit">Check In</Button>
-                        </Space>
-                    </Form.Item>
-                </Form>
+                {actionRoom && (() => {
+                    const today = new Date();
+                    const todayBooking = actionRoom.bookings.find(booking => {
+                        const checkInDate = new Date(booking.startDate);
+                        return checkInDate.toDateString() === today.toDateString() && booking.status === 'confirmed';
+                    });
+
+                    return todayBooking ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded border">
+                                <h3 className="font-semibold text-blue-800 mb-2">Booking Details</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>Guest:</strong> {todayBooking.guestName}</div>
+                                    <div><strong>Phone:</strong> {todayBooking.phone}</div>
+                                    <div><strong>Email:</strong> {todayBooking.email}</div>
+                                    <div><strong>Check-in:</strong> {new Date(todayBooking.startDate).toLocaleDateString()}</div>
+                                    <div><strong>Check-out:</strong> {new Date(todayBooking.endDate).toLocaleDateString()}</div>
+                                    <div><strong>Status:</strong> {todayBooking.status}</div>
+                                </div>
+                                {todayBooking.notes && (
+                                    <div className="mt-2">
+                                        <strong>Notes:</strong> {todayBooking.notes}
+                                    </div>
+                                )}
+                            </div>
+                            <Form form={form} onFinish={processCheckIn} layout="vertical">
+                                <Form.Item
+                                    label="Check-in Notes"
+                                    name="notes"
+                                >
+                                    <Input.TextArea rows={3} placeholder="Any special notes for check-in..." />
+                                </Form.Item>
+                                <Form.Item>
+                                    <Space className="w-full justify-end">
+                                        <Button onClick={() => setCheckInModalOpen(false)}>Cancel</Button>
+                                        <Button type="primary" htmlType="submit">
+                                            Check In {todayBooking.guestName}
+                                        </Button>
+                                    </Space>
+                                </Form.Item>
+                            </Form>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No confirmed booking found for today</p>
+                        </div>
+                    );
+                })()}
             </Modal>
 
             {/* Check Out Modal */}
             <Modal
-                title="Check Out Guest"
+                title={`Check Out Guest - Room ${actionRoom?.roomNumber}`}
                 open={checkOutModalOpen}
                 onCancel={() => setCheckOutModalOpen(false)}
                 onOk={processCheckOut}
                 centered
             >
-                <p>Are you sure you want to check out <strong>{actionRoom?.currentGuest}</strong> from room <strong>{actionRoom?.roomNumber}</strong>?</p>
-                <p className="text-sm text-gray-500 mt-2">The room status will be changed to "Cleaning" and will need to be cleaned before the next guest.</p>
+                {actionRoom && (() => {
+                    const currentBooking = actionRoom.bookings.find(booking => 
+                        booking.status === 'checked-in' || 
+                        (booking.status === 'confirmed' && actionRoom.currentGuest === booking.guestName)
+                    );
+
+                    return currentBooking ? (
+                        <div className="space-y-4">
+                            <div className="bg-red-50 p-4 rounded border">
+                                <h3 className="font-semibold text-red-800 mb-2">Current Booking</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>Guest:</strong> {currentBooking.guestName}</div>
+                                    <div><strong>Phone:</strong> {currentBooking.phone}</div>
+                                    <div><strong>Email:</strong> {currentBooking.email}</div>
+                                    <div><strong>Check-in:</strong> {new Date(currentBooking.startDate).toLocaleDateString()}</div>
+                                    <div><strong>Check-out:</strong> {new Date(currentBooking.endDate).toLocaleDateString()}</div>
+                                    <div><strong>Status:</strong> {currentBooking.status}</div>
+                                </div>
+                            </div>
+                            <p>Are you sure you want to check out <strong>{currentBooking.guestName}</strong> from room <strong>{actionRoom.roomNumber}</strong>?</p>
+                            <p className="text-sm text-gray-500">The room status will be changed to "Cleaning" and will need to be cleaned before the next guest.</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No active booking found for this room</p>
+                        </div>
+                    );
+                })()}
             </Modal>
         </div>
     );

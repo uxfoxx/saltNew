@@ -224,25 +224,55 @@ const AllTables: React.FC = () => {
     const processCheckIn = (values: any) => {
         if (!actionTable) return;
         
+        // Find the reservation for today at the specified time
+        const today = new Date();
+        const selectedTime = values.startTime;
+        const todayReservation = actionTable.bookings.find(booking => {
+            const reservationDate = new Date(booking.startDate);
+            const reservationTime = reservationDate.getHours() + ':' + reservationDate.getMinutes().toString().padStart(2, '0');
+            return reservationDate.toDateString() === today.toDateString() && 
+                   reservationTime === selectedTime.format('HH:mm') &&
+                   booking.status === 'confirmed';
+        });
+
+        if (!todayReservation) {
+            message.error('No confirmed reservation found for the selected time');
+            return;
+        }
+
         setAllTables(prev => prev.map(table => 
             table.id === actionTable.id 
                 ? { 
                     ...table, 
                     status: 'occupied',
-                    currentReservation: values.guestName,
+                    currentReservation: todayReservation.guestName,
                     reservationTime: `${values.startTime.format('HH:mm')} - ${values.endTime.format('HH:mm')}`
                 }
                 : table
         ));
         
+        // Update reservation status to checked-in
+        // In a real app, this would also update the reservations database
+        
         setCheckInModalOpen(false);
         form.resetFields();
-        message.success(`Table ${actionTable.tableNumber} checked in successfully`);
+        message.success(`${todayReservation.guestName} checked into table ${actionTable.tableNumber} successfully`);
     };
 
     const processCheckOut = () => {
         if (!actionTable) return;
         
+        // Find the current reservation
+        const currentReservation = actionTable.bookings.find(booking => 
+            booking.status === 'checked-in' || 
+            (booking.status === 'confirmed' && actionTable.currentReservation === booking.guestName)
+        );
+
+        if (!currentReservation) {
+            message.error('No active reservation found for this table');
+            return;
+        }
+
         setAllTables(prev => prev.map(table => 
             table.id === actionTable.id 
                 ? { 
@@ -254,8 +284,11 @@ const AllTables: React.FC = () => {
                 : table
         ));
         
+        // Update reservation status to completed
+        // In a real app, this would also update the reservations database
+        
         setCheckOutModalOpen(false);
-        message.success(`Table ${actionTable.tableNumber} checked out successfully`);
+        message.success(`${currentReservation.guestName} checked out of table ${actionTable.tableNumber} successfully`);
     };
 
     if (showOverview && selectedTable) {
@@ -364,23 +397,47 @@ const AllTables: React.FC = () => {
                         Details
                     </Button>
                     {record.status === 'available' ? (
-                        <Button 
-                            size="small" 
-                            type="primary"
-                            icon={<FaCalendarCheckIcon />}
-                            onClick={() => handleCheckIn(record)}
-                        >
-                            Check In
-                        </Button>
+                        (() => {
+                            // Check if there's a reservation for today
+                            const today = new Date();
+                            const todayReservations = record.bookings.filter(booking => {
+                                const reservationDate = new Date(booking.startDate);
+                                return reservationDate.toDateString() === today.toDateString() && booking.status === 'confirmed';
+                            });
+                            
+                            return todayReservations.length > 0 ? (
+                                <Button 
+                                    size="small" 
+                                    type="primary"
+                                    icon={<FaCalendarCheckIcon />}
+                                    onClick={() => handleCheckIn(record)}
+                                >
+                                    Check In ({todayReservations.length} reservations)
+                                </Button>
+                            ) : (
+                                <span className="text-xs text-gray-500">No reservations today</span>
+                            );
+                        })()
                     ) : record.status === 'occupied' ? (
-                        <Button 
-                            size="small" 
-                            danger
-                            icon={<FaCalendarTimesIcon />}
-                            onClick={() => handleCheckOut(record)}
-                        >
-                            Check Out
-                        </Button>
+                        (() => {
+                            const currentReservation = record.bookings.find(booking => 
+                                booking.status === 'checked-in' || 
+                                (booking.status === 'confirmed' && record.currentReservation === booking.guestName)
+                            );
+                            
+                            return currentReservation ? (
+                                <Button 
+                                    size="small" 
+                                    danger
+                                    icon={<FaCalendarTimesIcon />}
+                                    onClick={() => handleCheckOut(record)}
+                                >
+                                    Check Out {currentReservation.guestName}
+                                </Button>
+                            ) : (
+                                <span className="text-xs text-gray-500">No active reservation</span>
+                            );
+                        })()
                     ) : null}
                 </Space>
             )
@@ -523,7 +580,7 @@ const AllTables: React.FC = () => {
 
             {/* Check In Modal */}
             <Modal
-                title="Check In Guest"
+                title={`Check In Guest - Table ${actionTable?.tableNumber}`}
                 open={checkInModalOpen}
                 onCancel={() => {
                     setCheckInModalOpen(false);
@@ -532,60 +589,107 @@ const AllTables: React.FC = () => {
                 footer={null}
                 centered
             >
-                <Form form={form} onFinish={processCheckIn} layout="vertical">
-                    <Form.Item
-                        label="Guest Name"
-                        name="guestName"
-                        rules={[{ required: true, message: 'Please enter guest name' }]}
-                    >
-                        <Input placeholder="Enter guest name" />
-                    </Form.Item>
-                    <Form.Item
-                        label="Start Time"
-                        name="startTime"
-                        rules={[{ required: true, message: 'Please select start time' }]}
-                    >
-                        <TimePicker className="w-full" format="HH:mm" />
-                    </Form.Item>
-                    <Form.Item
-                        label="End Time"
-                        name="endTime"
-                        rules={[{ required: true, message: 'Please select end time' }]}
-                    >
-                        <TimePicker className="w-full" format="HH:mm" />
-                    </Form.Item>
-                    <Form.Item
-                        label="Party Size"
-                        name="partySize"
-                        rules={[{ required: true, message: 'Please enter party size' }]}
-                    >
-                        <Input type="number" placeholder="Number of guests" />
-                    </Form.Item>
-                    <Form.Item
-                        label="Special Notes"
-                        name="notes"
-                    >
-                        <Input.TextArea rows={3} placeholder="Any special requests or notes..." />
-                    </Form.Item>
-                    <Form.Item>
-                        <Space className="w-full justify-end">
-                            <Button onClick={() => setCheckInModalOpen(false)}>Cancel</Button>
-                            <Button type="primary" htmlType="submit">Check In</Button>
-                        </Space>
-                    </Form.Item>
-                </Form>
+                {actionTable && (() => {
+                    const today = new Date();
+                    const todayReservations = actionTable.bookings.filter(booking => {
+                        const reservationDate = new Date(booking.startDate);
+                        return reservationDate.toDateString() === today.toDateString() && booking.status === 'confirmed';
+                    });
+
+                    return todayReservations.length > 0 ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded border">
+                                <h3 className="font-semibold text-blue-800 mb-2">Today's Reservations</h3>
+                                {todayReservations.map((reservation, index) => (
+                                    <div key={index} className="border-b pb-2 mb-2 last:border-b-0">
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div><strong>Guest:</strong> {reservation.guestName}</div>
+                                            <div><strong>Time:</strong> {new Date(reservation.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                            <div><strong>Party Size:</strong> {reservation.partySize}</div>
+                                            <div><strong>Phone:</strong> {reservation.phone}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <Form form={form} onFinish={processCheckIn} layout="vertical">
+                                <Form.Item
+                                    label="Select Reservation Time"
+                                    name="startTime"
+                                    rules={[{ required: true, message: 'Please select reservation time' }]}
+                                >
+                                    <Select placeholder="Select which reservation to check in">
+                                        {todayReservations.map((reservation, index) => (
+                                            <Option key={index} value={new Date(reservation.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}>
+                                                {reservation.guestName} - {new Date(reservation.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                                <Form.Item
+                                    label="End Time"
+                                    name="endTime"
+                                    rules={[{ required: true, message: 'Please select end time' }]}
+                                >
+                                    <TimePicker className="w-full" format="HH:mm" />
+                                </Form.Item>
+                                <Form.Item
+                                    label="Check-in Notes"
+                                    name="notes"
+                                >
+                                    <Input.TextArea rows={3} placeholder="Any special notes for check-in..." />
+                                </Form.Item>
+                                <Form.Item>
+                                    <Space className="w-full justify-end">
+                                        <Button onClick={() => setCheckInModalOpen(false)}>Cancel</Button>
+                                        <Button type="primary" htmlType="submit">Check In Guest</Button>
+                                    </Space>
+                                </Form.Item>
+                            </Form>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No confirmed reservations found for today</p>
+                        </div>
+                    );
+                })()}
             </Modal>
 
             {/* Check Out Modal */}
             <Modal
-                title="Check Out Guest"
+                title={`Check Out Guest - Table ${actionTable?.tableNumber}`}
                 open={checkOutModalOpen}
                 onCancel={() => setCheckOutModalOpen(false)}
                 onOk={processCheckOut}
                 centered
             >
-                <p>Are you sure you want to check out <strong>{actionTable?.currentReservation}</strong> from table <strong>{actionTable?.tableNumber}</strong>?</p>
-                <p className="text-sm text-gray-500 mt-2">The table status will be changed to "Preparing" and will need to be cleaned and set up for the next guests.</p>
+                {actionTable && (() => {
+                    const currentReservation = actionTable.bookings.find(booking => 
+                        booking.status === 'checked-in' || 
+                        (booking.status === 'confirmed' && actionTable.currentReservation === booking.guestName)
+                    );
+
+                    return currentReservation ? (
+                        <div className="space-y-4">
+                            <div className="bg-red-50 p-4 rounded border">
+                                <h3 className="font-semibold text-red-800 mb-2">Current Reservation</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>Guest:</strong> {currentReservation.guestName}</div>
+                                    <div><strong>Phone:</strong> {currentReservation.phone}</div>
+                                    <div><strong>Email:</strong> {currentReservation.email}</div>
+                                    <div><strong>Party Size:</strong> {currentReservation.partySize}</div>
+                                    <div><strong>Time:</strong> {actionTable.reservationTime}</div>
+                                    <div><strong>Status:</strong> {currentReservation.status}</div>
+                                </div>
+                            </div>
+                            <p>Are you sure you want to check out <strong>{currentReservation.guestName}</strong> from table <strong>{actionTable.tableNumber}</strong>?</p>
+                            <p className="text-sm text-gray-500">The table status will be changed to "Preparing" and will need to be cleaned and set up for the next guests.</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">No active reservation found for this table</p>
+                        </div>
+                    );
+                })()}
             </Modal>
         </div>
     );
